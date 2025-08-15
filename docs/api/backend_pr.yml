@@ -1,0 +1,326 @@
+openapi: 3.0.0
+info:
+  title: CommentAPI
+  description: ユーザーのコメント操作に関するAPI
+  version: 1.0.0
+paths:
+  /articles/{articleid}/comments:
+    get: 
+      summary: コメント取得
+      description: ユーザーが指定した記事のコメント一覧を取得する（投稿日時の新しい順でソートされる、編集日時は関係ない）
+      parameters:
+        -  name: articleid
+           in: path
+           required: true
+           description: 対称記事ID
+           schema:
+             type: integer
+      responses: 
+        200:
+          description: コメント一覧を取得しました
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    commentid:
+                      type: integer
+                      example: 101
+                    userid:
+                      type: integer
+                      example: 3
+                    articleid:
+                      type: integer
+                      example: 10
+                    text:
+                      type: string
+                      example: これはコメントの例です
+                    date:
+                      type: string
+                      format: date-time
+                      example: "2025-08-05T12:34:56Z"
+                            
+        400:
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: リクエスト内容が不正です
+        401:
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 認証情報が必要です
+        403:
+          description: 権限エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 操作する権限がありません
+        404:
+          description: リソースが見つかりません
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 指定されたIDのコメントが存在しません
+
+   
+    post:
+      summary: コメント投稿
+      description: ユーザーが記事にコメントを投稿する（内容は自由、10字以上100字以下のテキスト）
+      parameters:
+        -  name: articleid
+           in: path
+           required: true
+           description: 対称記事ID
+           schema:
+             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  minLength: 10
+                  maxLength: 100
+                  example: これはあたらしいコメントです
+      responses:
+        201:
+          description: コメント投稿
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  commentid:  
+                    type: integer
+                    example: 25
+                  userid:
+                    type: integer
+                    example: 33
+                  articleid:
+                    type: integer
+                    example: 17
+                  comment:
+                    type: string
+                    example: これはあたらしいコメントです
+                  date:
+                    type: integer
+                    format: date-time
+                    example: "2025-08-05T16:22:00Z"   
+                          
+        400:
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: リクエスト内容が不正です
+        401:
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 認証情報が必要です
+        403:
+          description: 権限エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 操作する権限がありません
+        404:
+          description: リソースが見つかりません
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 指定されたIDのコメントが存在しません
+        
+
+  /comments/{commentid}:
+    put:
+      summary: コメント編集
+      description: ユーザーがコメントを編集する（自分が投稿したもののみ）
+      parameters:
+        -  name: commentid
+           in: path
+           required: true
+           description: コメントID
+           schema:
+             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  minLength: 10
+                  maxLength: 100
+                  example: これは編集後のコメントです
+      responses:
+        200: 
+          description: コメント編集
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentid:
+                    type: integer
+                    example: 42
+                  userid:
+                    type: integer
+                    example: 3
+                  articleid:
+                    type: integer
+                    example: 10
+                  text:
+                    type: string
+                    example: これは編集後のコメントです
+                  date:
+                    type: string
+                    format: date-time
+                    example: "2025-08-05T15:00:00Z" 
+        400:
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: リクエスト内容が不正です
+        401:
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 認証情報が必要です
+        403:
+          description: 権限エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 操作する権限がありません
+        404:
+          description: リソースが見つかりません
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 指定されたIDのコメントが存在しません
+             
+    
+    delete:
+      summary: コメント削除
+      description: ユーザーがコメントを削除する（自分が投稿したもののみ、物理削除）
+      parameters:
+        -  name: commentid
+           in: path
+           required: true
+           description: コメントID
+           schema:
+             type: integer
+      responses:
+        200: 
+          description: コメント削除
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  message:
+                     type: string
+                     example: コメントを削除しました
+        400:
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: リクエスト内容が不正です
+        401:
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 認証情報が必要です
+        403:
+          description: 権限エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 操作する権限がありません
+        404:
+          description: リソースが見つかりません
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 指定されたIDのコメントが存在しません
+
