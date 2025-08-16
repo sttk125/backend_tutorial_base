@@ -70,11 +70,22 @@ services:
         environment:
             SWAGGER_JSON: '/openapi/openapi.yml'
         volumes:
-            - './docs/api/${OPENAPI_FILE_NAME}:/openapi/openapi.yml'
+        ##openapi-sampleに値がどうしてもなってしまうので直打ち
+            - './docs/api/backend_pr.yml:/openapi/openapi.yml'
         networks:
             - sail
     ## ReDoc
-    # IMPLEMENT HERE
+    redoc:
+        image: redocly/redoc:latest
+        ports:
+            - '8003:80'
+        environment:
+            SPEC_URL: '/openapi/openapi.yml'
+        volumes:
+        ##openapi-sampleに値がどうしてもなってしまうので直打ち
+        - './docs/api/backend_pr.yml:/usr/share/nginx/html/openapi/openapi.yml:ro'
+        networks:
+            - sail
 
 networks:
     sail:
