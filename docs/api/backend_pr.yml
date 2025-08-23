@@ -1,46 +1,234 @@
 openapi: 3.0.0
 info:
-  title: CommentAPI
-  description: ユーザーのコメント操作に関するAPI
-  version: 1.0.0
+  title: Comment_API
+  description: |
+    ユーザーのコメント操作に関するAPI。
+
+    本APIはBearerトークンによる認証を要求する。
+    トークンは、JWTトークンを使う。
+    認証が必要な操作は投稿・編集・削除である。
+  version: 1.1.0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: newuser@example.com
+
+    VerifyRequest:
+      type: object
+      required: [email, token]
+      properties:
+        email:
+          type: string
+          format: email
+          example: newuser@example.com
+        token:
+          type: string
+          example: ABC123   # 6桁英数字を想定
+
+    RegisterCompleteRequest:
+      type: object
+      required: [email, token, name, password]
+      properties:
+        email:   { type: string, format: email, example: newuser@example.com }
+        token:   { type: string, example: ABC123 }
+        name:    { type: string, example: 山田太郎 }
+        password: { type: string, minLength: 8, example: strongPass1! }
+
+    AuthTokens:
+      type: object
+      required: [access_token, token_type]
+      properties:
+        access_token: { type: string, example: eyJhbGciOi... }
+        token_type:   { type: string, example: Bearer }
+        expires_in:   { type: integer, example: 3600 }
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: エラーメッセージ
+
 paths:
-  /articles/{articleid}/comments:
+  /auth/register/request:
+    post:
+      summary: 会員登録(1/3) メール登録
+      description: 入力メールに確認コード（有効期限30分）を送信します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        200:
+          description: 確認コード送信完了
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                ok: { value: { message: "確認コードを送信しました" } }
+        422:
+          description: バリデーションエラー（既存メール等）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/register/verify:
+    post:
+      summary: 会員登録(2/3) 確認コード認証
+      description: メールに届いた確認コードを検証します（期限切れ・不一致は失敗）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+      responses:
+        200:
+          description: メール確認完了
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                ok: { value: { message: "メール確認が完了しました" } }
+        422:
+          description: トークン不正・期限切れ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/register/complete:
+    post:
+      summary: 会員登録(3/3) 会員情報登録
+      description: 検証済みメールに対し氏名・パスワードを登録し、アカウントを作成してトークンを返します（パスワードはハッシュ化保存）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterCompleteRequest'
+      responses:
+        201:
+          description: 会員登録完了（アクセストークン発行）
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthTokens' }
+        422:
+          description: 入力値不正／未検証／期限切れ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  
+  /auth/login:
+    post:
+      summary: ログイン（メール+パスワード）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email, example: user@example.com }
+                password: { type: string, example: pass1234 }
+      responses:
+        200:
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokens'
+        401:
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /articles/{article_id}/comments:
     get: 
       summary: コメント取得
       description: ユーザーが指定した記事のコメント一覧を取得する（投稿日時の新しい順でソートされる、編集日時は関係ない）
       parameters:
-        -  name: articleid
-           in: path
-           required: true
-           description: 対称記事ID
-           schema:
-             type: integer
+        - name: article_id
+          in: path
+          required: true
+          description: 対象記事ID
+          schema:
+            type: integer
+        - name: page
+          in: query
+          required: false
+          description: 取得するページ番号
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: limit
+          in: query
+          required: false
+          description: 1ページあたりのコメント数
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 10
       responses: 
         200:
           description: コメント一覧を取得しました
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    commentid:
-                      type: integer
-                      example: 101
-                    userid:
-                      type: integer
-                      example: 3
-                    articleid:
-                      type: integer
-                      example: 10
-                    text:
-                      type: string
-                      example: これはコメントの例です
-                    date:
-                      type: string
-                      format: date-time
-                      example: "2025-08-05T12:34:56Z"
+                type: object
+                properties:
+                  page:
+                    type: integer
+                    example: 1
+                  limit:
+                    type: integer
+                    example: 10
+                  total:
+                    type: integer
+                    description: ヒットしたコメントの総件数
+                    example: 52
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        comment_id:
+                          type: integer
+                          example: 101
+                        user_id:
+                          type: integer
+                          example: 3
+                        article_id:
+                          type: integer
+                          example: 10
+                        comment:
+                          type: string
+                          example: これはコメントの例です
+                        created_at:
+                          type: string
+                          format: date-time
+                          example: "2025-08-05T12:34:56Z"
                             
         400:
           description: 不正なリクエスト
@@ -52,26 +240,7 @@ paths:
                   message:
                     type: string
                     example: リクエスト内容が不正です
-        401:
-          description: 認証エラー
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 認証情報が必要です
-        403:
-          description: 権限エラー
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 操作する権限がありません
+        
         404:
           description: リソースが見つかりません
           content:
@@ -81,17 +250,19 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: 指定されたIDのコメントが存在しません
+                    example: 指定された記事IDが存在しません
 
    
     post:
+      security:
+        - bearerAuth: []
       summary: コメント投稿
       description: ユーザーが記事にコメントを投稿する（内容は自由、10字以上100字以下のテキスト）
       parameters:
-        -  name: articleid
+        -  name: article_id
            in: path
            required: true
-           description: 対称記事ID
+           description: 対象記事ID
            schema:
              type: integer
       requestBody:
@@ -100,8 +271,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [comment] 
               properties:
-                text:
+                comment:
                   type: string
                   minLength: 10
                   maxLength: 100
@@ -114,20 +286,20 @@ paths:
               schema: 
                 type: object
                 properties:
-                  commentid:  
+                  comment_id:  
                     type: integer
                     example: 25
-                  userid:
+                  user_id:
                     type: integer
                     example: 33
-                  articleid:
+                  article_id:
                     type: integer
                     example: 17
                   comment:
                     type: string
                     example: これはあたらしいコメントです
-                  date:
-                    type: integer
+                  created_at:
+                    type: string
                     format: date-time
                     example: "2025-08-05T16:22:00Z"   
                           
@@ -151,16 +323,7 @@ paths:
                   message:
                     type: string
                     example: 認証情報が必要です
-        403:
-          description: 権限エラー
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 操作する権限がありません
+        
         404:
           description: リソースが見つかりません
           content:
@@ -170,15 +333,27 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: 指定されたIDのコメントが存在しません
+                    example: 指定された記事IDが存在しません
+        422:
+          description: 入力値が不正です。
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: コメントは10文字以上100文字以内で入力してください
         
 
-  /comments/{commentid}:
+  /comments/{comment_id}:
     put:
+      security:
+        - bearerAuth: []
       summary: コメント編集
       description: ユーザーがコメントを編集する（自分が投稿したもののみ）
       parameters:
-        -  name: commentid
+        -  name: comment_id
            in: path
            required: true
            description: コメントID
@@ -190,8 +365,9 @@ paths:
           application/json:
             schema:
               type: object
+              required: [comment] 
               properties:
-                text:
+                comment:
                   type: string
                   minLength: 10
                   maxLength: 100
@@ -204,19 +380,19 @@ paths:
               schema:
                 type: object
                 properties:
-                  commentid:
+                  comment_id:
                     type: integer
                     example: 42
-                  userid:
+                  user_id:
                     type: integer
                     example: 3
-                  articleid:
+                  article_id:
                     type: integer
                     example: 10
-                  text:
+                  comment:
                     type: string
                     example: これは編集後のコメントです
-                  date:
+                  updated_at:
                     type: string
                     format: date-time
                     example: "2025-08-05T15:00:00Z" 
@@ -260,13 +436,25 @@ paths:
                   message:
                     type: string
                     example: 指定されたIDのコメントが存在しません
+        422:
+          description: 入力値が不正です。
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: コメントは10文字以上100文字以内で入力してください
              
     
     delete:
+      security:
+        - bearerAuth: []
       summary: コメント削除
       description: ユーザーがコメントを削除する（自分が投稿したもののみ、物理削除）
       parameters:
-        -  name: commentid
+        -  name: comment_id
            in: path
            required: true
            description: コメントID
