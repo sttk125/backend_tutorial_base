@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('articles', function (Blueprint $table) {
             $table->id();
+            $table->string('title', 255);
+            $table->longtext('body');
+            $table->enum('status', ['draft', 'published'])->default('draft');
             $table->timestamps();
+            $table->softDeletes();
+            $table->index(['status', 'created_at']);
         });
     }
 

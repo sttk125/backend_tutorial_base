@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class VerifyTokenRequest extends FormRequest
+{
+    public function authorize(): bool { return true; }
+    public function rules(): array
+    {
+        return [
+            'email' => ['required','email'],
+            'token' => ['required','string','min:4','max:64'], // 6桁想定だが幅広に許容
+        ];
+    }
+}
