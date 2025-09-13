@@ -8,7 +8,7 @@ class UpdateCommentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // 認可は後でPolicyで
+        return true; // 認可はルートで止めている
     }
 
     public function rules(): array

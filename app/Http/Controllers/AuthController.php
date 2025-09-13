@@ -21,10 +21,10 @@ class AuthController extends Controller
     {
         $email = strtolower($request->validated()['email']);
 
-        // 6桁数字トークン（UIで扱いやすい）
+        // 6桁数字トークン
         $token = (string) random_int(100000, 999999);
 
-        // 既存破棄→新規発行（1メール1トークン）
+        // 既存破棄→新規発行
         DB::table('email_verifications')->where('email', $email)->delete();
         DB::table('email_verifications')->insert([
             'email'      => $email,
@@ -34,19 +34,19 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Mailpit( http://localhost:8025 )で受信確認できる
+        // Mailpitで受信確認できる
         Mail::to($email)->send(new VerifyTokenMail($token));
 
         return response()->json(['message' => '確認コードを送信しました'], 200);
     }
 
-    // (2) トークン検証：verified_at を打つ
+    // (2) トークン検証を打つ
     // POST /api/auth/register/verify
     public function registerVerify(VerifyTokenRequest $request)
     {
         $data = $request->validated();
         $email = strtolower($data['email']);
-        $token = $data['token']; // 数字6桁想定
+        $token = $data['token']; 
 
         $row = DB::table('email_verifications')
             ->where('email', $email)
@@ -89,16 +89,15 @@ class AuthController extends Controller
             ['name' => $data['name'], 'password' => Hash::make($data['password'])]
         );
 
-        // Sanctumトークン発行
+    
         $accessToken = $user->createToken('api')->plainTextToken;
 
-        // 使い終わったトークンを削除（任意）
         DB::table('email_verifications')->where('email', $email)->delete();
 
         return response()->json([
             'access_token' => $accessToken,
             'token_type'   => 'Bearer',
-            'expires_in'   => 3600, // 目安（Sanctumはデフォ無期限）
+            'expires_in'   => 3600, 
         ], 201);
     }
 

@@ -8,7 +8,7 @@ class ListCommentsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return true; //誰でも可
     }
 
     public function rules(): array

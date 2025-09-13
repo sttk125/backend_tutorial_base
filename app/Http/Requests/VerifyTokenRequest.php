@@ -11,7 +11,7 @@ class VerifyTokenRequest extends FormRequest
     {
         return [
             'email' => ['required','email'],
-            'token' => ['required','string','min:4','max:64'], // 6桁想定だが幅広に許容
+            'token' => ['required','string','min:4','max:64'], 
         ];
     }
 }
