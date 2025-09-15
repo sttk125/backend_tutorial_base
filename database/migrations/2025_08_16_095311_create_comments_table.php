@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('text', 100);
             $table->timestamps();
-            $table->softDeletes();
+            // $table->softDeleted 物理削除にするため変更
             $table->index(['article_id', 'created_at']);
         });
     }
